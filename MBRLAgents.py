@@ -36,15 +36,22 @@ class Agent:
                 a = np.random.randint(s.size)
         return a
 
+    def update(self, s, a, r, done, s_next, n_planning_updates):
+        self.n[s, a, s_next] += 1
+        self.R_sum[s, a, s_next] += r
+        p_hat = self.n[s, a, s_next] / np.sum(self.n[s, a])
+        r_hat = self.R_sum[s, a, s_next] / self.n[s, a, s_next]
+        return p_hat, r_hat
+
 
 class DynaAgent(Agent):
 
     def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon):
         super().__init__(n_states, n_actions, learning_rate, gamma, epsilon)
-        # TO DO: Initialize count tables, and reward sum tables. 
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
         # TO DO: Add own code
+        p_hat, r_hat = super().update(s, a, r, done, s_next, n_planning_updates)
         pass
 
 
@@ -57,9 +64,7 @@ class PrioritizedSweepingAgent(Agent):
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
         # TO DO: Add own code
-        self.n[s, a, s_next] += 1
-        self.R_sum[s, a, s_next] += r
-
+        p_hat, r_hat = super().update(s, a, r, done, s_next, n_planning_updates)
 
         # Helper code to work with the queue
         # Put (s,a) on the queue with priority p (needs a minus since the queue pops the smallest priority first)
