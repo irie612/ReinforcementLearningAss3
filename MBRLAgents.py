@@ -19,7 +19,9 @@ class Agent:
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.epsilon = epsilon
-        self.Q_sa = np.zeros((n_states, n_actions))
+        self.Q = np.zeros((n_states, n_actions))
+        self.n = np.zeros((n_states, n_actions, n_states))
+        self.R_sum = np.zeros((n_states, n_actions, n_states))
 
     def select_action(self, s):
         p = np.random.uniform()
@@ -52,11 +54,12 @@ class PrioritizedSweepingAgent(Agent):
         super().__init__(n_states, n_actions, learning_rate, gamma, epsilon)
         self.priority_cutoff = priority_cutoff
         self.queue = PriorityQueue(maxsize=max_queue_size)
-        self.n = np.zeros((n_states, n_actions, n_states))
-        self.R_sum = np.zeros((n_states, n_actions, n_states))
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
         # TO DO: Add own code
+        self.n[s, a, s_next] += 1
+        self.R_sum[s, a, s_next] += r
+
 
         # Helper code to work with the queue
         # Put (s,a) on the queue with priority p (needs a minus since the queue pops the smallest priority first)
@@ -102,7 +105,7 @@ def test():
 
         # Render environment
         if plot:
-            env.render(Q_sa=pi.Q_sa, plot_optimal_policy=plot_optimal_policy,
+            env.render(Q_sa=pi.Q, plot_optimal_policy=plot_optimal_policy,
                        step_pause=step_pause)
 
         # Ask user for manual or continuous execution
