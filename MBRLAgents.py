@@ -37,10 +37,11 @@ class Agent:
         return a
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
+        # i think this is all right but double check
         self.n[s, a, s_next] += 1
         self.R_sum[s, a, s_next] += r
         p_hat = self.n[s, a, s_next] / np.sum(self.n[s, a])
-        r_hat = self.R_sum[s, a, s_next] / self.n[s, a, s_next]
+        r_hat = self.R_sum[s, a, s_next] / self.n[s, a, s_next]  # not sure what the point of this one is
         return p_hat, r_hat
 
 
@@ -63,14 +64,16 @@ class PrioritizedSweepingAgent(Agent):
         self.queue = PriorityQueue(maxsize=max_queue_size)
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
-        # TO DO: Add own code
         p_hat, r_hat = super().update(s, a, r, done, s_next, n_planning_updates)
+        # need to change np.max() to take some args. I don't understand the algorithms notationnn
+        priority = r + self.gamma * np.max() - self.Q[s, a]
+        if priority > 0:
+            self.queue.put((-priority, (s, a)))
+        for k in range(n_planning_updates):
+            _, (s, a) = self.queue.get()
+        # simulate model
+        # update Q table
 
-        # Helper code to work with the queue
-        # Put (s,a) on the queue with priority p (needs a minus since the queue pops the smallest priority first)
-        # self.queue.put((-p,(s,a))) 
-        # Retrieve the top (s,a) from the queue
-        # _,(s,a) = self.queue.get() # get the top (s,a) for the queue
         pass
 
 
