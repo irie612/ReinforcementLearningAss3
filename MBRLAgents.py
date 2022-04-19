@@ -27,14 +27,14 @@ class Agent:
     def select_action(self, s):
         p = np.random.uniform()
         if p <= 1 - self.epsilon:
-            choices = np.argwhere(s == np.max(s)).flatten()
+            choices = np.argwhere(self.Q[s] == np.max(self.Q[s])).flatten()
             a = np.random.choice(choices)
         else:
-            choices = np.argwhere(s != np.max(s)).flatten()
+            choices = np.argwhere(self.Q[s] != np.max(self.Q[s])).flatten()
             if choices.size > 0:
                 a = np.random.choice(choices)
             else:
-                a = np.random.randint(s.size)
+                a = np.random.randint(self.Q[s].size)
         return a
 
     def update(self, s, a, r, s_next, done):
@@ -42,10 +42,9 @@ class Agent:
         self.R_sum[s, a, s_next] += r
 
     def simulate_model(self, s, a):
-        p_hat = self.n[s, a] / np.sum(self.n, axis=2)
-        r_hat = self.R_sum[s, a] / self.n[s, a]
-        s_next = np.random.choice([a in range(self.n_actions)], p=p_hat)
-        r = r_hat[s_next]
+        p_hat = self.n[s, a] / np.sum(self.n[s,a])
+        s_next = np.random.choice([i for i in range(self.n_states)], p=p_hat)
+        r = self.R_sum[s,a,s_next] / self.n[s, a, s_next]
         return s_next, r
 
 
@@ -57,7 +56,20 @@ class DynaAgent(Agent):
     def update(self, s, a, r, s_next, done):
         # TO DO: Add own code
         super().update(s, a, r, s_next, done)
-
+        self.Q[s,a] += self.learning_rate*(r + self.gamma*np.max(self.Q[s_next]) - self.Q[s,a])
+        n_s = np.sum(self.n, axis=(1,2))
+        n_s_a = np.sum(self.n, axis=2)
+        prev_sel_s = np.argwhere(n_s>0).flatten()
+        if prev_sel_s.size > 0:
+            for k in range(self.n_planning_updates):
+                random_s = np.random.choice(prev_sel_s)
+                possible_actions = np.argwhere(n_s_a[random_s]>0).flatten()
+                random_a = np.random.choice(possible_actions)
+                s_next_model, r_model = self.simulate_model(random_s, random_a)
+                self.Q[random_s,random_a] += self.learning_rate*(r_model + self.gamma*np.max(self.Q[s_next_model]) - self.Q[random_s,random_a])
+            
+            
+            
 
 class PrioritizedSweepingAgent(Agent):
 
@@ -93,7 +105,7 @@ def test():
     n_planning_updates = 5
 
     # Plotting parameters
-    plot = True
+    plot = False
     plot_optimal_policy = True
     step_pause = 0.0001
 
@@ -110,7 +122,7 @@ def test():
 
     # Prepare for running
     s = env.reset()
-    continuous_mode = False
+    continuous_mode = True
 
     for t in range(n_time_steps):
         # Select action, transition, update policy
@@ -118,7 +130,7 @@ def test():
         s_next, r, done = env.step(a)
         pi.update(s=s, a=a, r=r, done=done, s_next=s_next)
 
-        # Render environment
+        # Render environments
         if plot:
             env.render(Q_sa=pi.Q, plot_optimal_policy=plot_optimal_policy,
                        step_pause=step_pause)
