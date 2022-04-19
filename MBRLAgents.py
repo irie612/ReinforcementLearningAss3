@@ -40,9 +40,14 @@ class Agent:
         # i think this is all right but double check
         self.n[s, a, s_next] += 1
         self.R_sum[s, a, s_next] += r
-        p_hat = self.n[s, a, s_next] / np.sum(self.n[s, a])
-        r_hat = self.R_sum[s, a, s_next] / self.n[s, a, s_next]  # not sure what the point of this one is
-        return p_hat, r_hat
+    
+    def simulate_model(self, s, a):
+        p_hat = self.n[s, a] / np.sum(self.n, axis=2)
+        r_hat = self.R_sum[s, a] / self.n[s, a]
+        s_next = np.random.choice([a in range(self.n_actions)], p=p_hat)
+        r = r_hat[s_next]
+        return s_next, r
+        
 
 
 class DynaAgent(Agent):
@@ -52,8 +57,8 @@ class DynaAgent(Agent):
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
         # TO DO: Add own code
-        p_hat, r_hat = super().update(s, a, r, done, s_next, n_planning_updates)
-        pass
+        super().update(s, a, r, done, s_next, n_planning_updates)
+        
 
 
 class PrioritizedSweepingAgent(Agent):
@@ -64,7 +69,7 @@ class PrioritizedSweepingAgent(Agent):
         self.queue = PriorityQueue(maxsize=max_queue_size)
 
     def update(self, s, a, r, done, s_next, n_planning_updates):
-        p_hat, r_hat = super().update(s, a, r, done, s_next, n_planning_updates)
+        super().update(s, a, r, done, s_next, n_planning_updates)
         # need to change np.max() to take some args. I don't understand the algorithms notationnn
         priority = r + self.gamma * np.max() - self.Q[s, a]
         if priority > 0:
