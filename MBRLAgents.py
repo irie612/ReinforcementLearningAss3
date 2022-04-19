@@ -13,12 +13,13 @@ from MBRLEnvironment import WindyGridworld
 
 
 class Agent:
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon):
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon, n_planning_updates):
         self.n_states = n_states
         self.n_actions = n_actions
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.epsilon = epsilon
+        self.n_planning_updates = n_planning_updates
         self.Q = np.zeros((n_states, n_actions))
         self.n = np.zeros((n_states, n_actions, n_states))
         self.R_sum = np.zeros((n_states, n_actions, n_states))
@@ -36,48 +37,47 @@ class Agent:
                 a = np.random.randint(s.size)
         return a
 
-    def update(self, s, a, r, done, s_next, n_planning_updates):
-        # i think this is all right but double check
+    def update(self, s, a, r, s_next, done):
         self.n[s, a, s_next] += 1
         self.R_sum[s, a, s_next] += r
-    
+
     def simulate_model(self, s, a):
         p_hat = self.n[s, a] / np.sum(self.n, axis=2)
         r_hat = self.R_sum[s, a] / self.n[s, a]
         s_next = np.random.choice([a in range(self.n_actions)], p=p_hat)
         r = r_hat[s_next]
         return s_next, r
-        
 
 
 class DynaAgent(Agent):
 
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon):
-        super().__init__(n_states, n_actions, learning_rate, gamma, epsilon)
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon, n_planning_updates):
+        super().__init__(n_states, n_actions, learning_rate, gamma, epsilon, n_planning_updates)
 
-    def update(self, s, a, r, done, s_next, n_planning_updates):
+    def update(self, s, a, r, s_next, done):
         # TO DO: Add own code
-        super().update(s, a, r, done, s_next, n_planning_updates)
-        
+        super().update(s, a, r, s_next, done)
 
 
 class PrioritizedSweepingAgent(Agent):
 
-    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon, max_queue_size=200, priority_cutoff=0.01):
-        super().__init__(n_states, n_actions, learning_rate, gamma, epsilon)
+    def __init__(self, n_states, n_actions, learning_rate, gamma, epsilon, n_planning_updates, max_queue_size=200,
+                 priority_cutoff=0.01):
+        super().__init__(n_states, n_actions, learning_rate, gamma, epsilon, n_planning_updates)
         self.priority_cutoff = priority_cutoff
         self.queue = PriorityQueue(maxsize=max_queue_size)
 
-    def update(self, s, a, r, done, s_next, n_planning_updates):
-        super().update(s, a, r, done, s_next, n_planning_updates)
-        # need to change np.max() to take some args. I don't understand the algorithms notationnn
-        priority = r + self.gamma * np.max() - self.Q[s, a]
+    def update(self, s, a, r, s_next, done):
+        super().update(s, a, r, s_next, done)
+        priority = np.abs(r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
         if priority > 0:
             self.queue.put((-priority, (s, a)))
-        for k in range(n_planning_updates):
+        for k in range(self.n_planning_updates):
+            if self.queue.empty():
+                break
             _, (s, a) = self.queue.get()
-        # simulate model
-        # update Q table
+            # simulate model
+            # update Q table
 
         pass
 
@@ -100,9 +100,11 @@ def test():
     # Initialize environment and policy
     env = WindyGridworld()
     if policy == 'dyna':
-        pi = DynaAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon)  # Initialize Dyna policy
+        pi = DynaAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon,
+                       n_planning_updates)  # Initialize Dyna policy
     elif policy == 'ps':
-        pi = PrioritizedSweepingAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon)  # Init PS policy
+        pi = PrioritizedSweepingAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon,
+                                      n_planning_updates)  # Init PS policy
     else:
         raise KeyError('Policy {} not implemented'.format(policy))
 
@@ -114,7 +116,7 @@ def test():
         # Select action, transition, update policy
         a = pi.select_action(s)
         s_next, r, done = env.step(a)
-        pi.update(s=s, a=a, r=r, done=done, s_next=s_next, n_planning_updates=n_planning_updates)
+        pi.update(s=s, a=a, r=r, done=done, s_next=s_next)
 
         # Render environment
         if plot:
