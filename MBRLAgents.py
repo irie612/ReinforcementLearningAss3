@@ -79,11 +79,6 @@ class PrioritizedSweepingAgent(Agent):
         self.queue = PriorityQueue(maxsize=max_queue_size)
         self.priority = lambda s, a, r, s_next: np.abs(r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
 
-    def simulate_model(self, s, a):
-        s_next, r = super().simulate_model(s, a)
-        # reverse_model = self.n[s, a] / np.sum(self.n[:, :, s_next])
-        return s_next, r
-
     def update(self, s, a, r, s_next, done):
         super().update(s, a, r, s_next, done)
         p = self.priority(s, a, r, s_next)
@@ -135,7 +130,6 @@ def test():
 
     for t in range(n_time_steps):
         # Select action, transition, update policy
-        print(t)
         a = pi.select_action(s)
         s_next, r, done = env.step(a)
         pi.update(s=s, a=a, r=r, done=done, s_next=s_next)
