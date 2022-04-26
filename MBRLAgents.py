@@ -108,7 +108,7 @@ def test():
     gamma = 0.99
 
     # Algorithm parameters
-    policy = 'ps'  # 'dyna'
+    policy = 'dyna'  # 'dyna'
     epsilon = 0.1
     learning_rate = 0.5
     n_planning_updates = 5
@@ -131,7 +131,7 @@ def test():
 
     # Prepare for running
     s = env.reset()
-    continuous_mode = True
+    continuous_mode = False
 
     for t in range(n_time_steps):
         # Select action, transition, update policy
