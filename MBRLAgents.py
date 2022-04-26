@@ -23,6 +23,7 @@ class Agent:
         self.Q = np.zeros((n_states, n_actions))
         self.n = np.zeros((n_states, n_actions, n_states))
         self.R_sum = np.zeros((n_states, n_actions, n_states))
+        self.r_function = lambda s, a, s_next: self.R_sum[s, a, s_next] / self.n[s, a, s_next]
 
     def select_action(self, s):
         p = np.random.uniform()
@@ -42,10 +43,9 @@ class Agent:
         self.R_sum[s, a, s_next] += r
 
     def simulate_model(self, s, a):
-        p_hat = self.n[s, a] / np.sum(self.n[s,a])
+        p_hat = self.n[s, a] / np.sum(self.n[s, a])
         s_next = np.random.choice([i for i in range(self.n_states)], p=p_hat)
-        r = self.R_sum[s,a,s_next] / self.n[s, a, s_next]
-        return s_next, r
+        return s_next, self.r_function(s, a, s_next)
 
 
 class DynaAgent(Agent):
@@ -56,20 +56,19 @@ class DynaAgent(Agent):
     def update(self, s, a, r, s_next, done):
         # TO DO: Add own code
         super().update(s, a, r, s_next, done)
-        self.Q[s,a] += self.learning_rate*(r + self.gamma*np.max(self.Q[s_next]) - self.Q[s,a])
-        n_s = np.sum(self.n, axis=(1,2))
+        self.Q[s, a] += self.learning_rate * (r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
+        n_s = np.sum(self.n, axis=(1, 2))
         n_s_a = np.sum(self.n, axis=2)
-        prev_sel_s = np.argwhere(n_s>0).flatten()
+        prev_sel_s = np.argwhere(n_s > 0).flatten()
         if prev_sel_s.size > 0:
             for k in range(self.n_planning_updates):
                 random_s = np.random.choice(prev_sel_s)
-                possible_actions = np.argwhere(n_s_a[random_s]>0).flatten()
+                possible_actions = np.argwhere(n_s_a[random_s] > 0).flatten()
                 random_a = np.random.choice(possible_actions)
                 s_next_model, r_model = self.simulate_model(random_s, random_a)
-                self.Q[random_s,random_a] += self.learning_rate*(r_model + self.gamma*np.max(self.Q[s_next_model]) - self.Q[random_s,random_a])
-            
-            
-            
+                self.Q[random_s, random_a] += self.learning_rate * (r_model + self.gamma * np.max(self.Q[s_next_model])
+                                                                    - self.Q[random_s, random_a])
+
 
 class PrioritizedSweepingAgent(Agent):
 
@@ -78,20 +77,30 @@ class PrioritizedSweepingAgent(Agent):
         super().__init__(n_states, n_actions, learning_rate, gamma, epsilon, n_planning_updates)
         self.priority_cutoff = priority_cutoff
         self.queue = PriorityQueue(maxsize=max_queue_size)
+        self.priority = lambda s, a, r, s_next: np.abs(r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
+
+    def simulate_model(self, s, a):
+        s_next, r = super().simulate_model(s, a)
+        # reverse_model = self.n[s, a] / np.sum(self.n[:, :, s_next])
+        return s_next, r
 
     def update(self, s, a, r, s_next, done):
         super().update(s, a, r, s_next, done)
-        priority = np.abs(r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
-        if priority > 0:
-            self.queue.put((-priority, (s, a)))
+        p = self.priority(s, a, r, s_next)
+        if p > self.priority_cutoff:
+            self.queue.put((-p, (s, a)))
         for k in range(self.n_planning_updates):
             if self.queue.empty():
                 break
-            _, (s, a) = self.queue.get()
-            # simulate model
-            # update Q table
-
-        pass
+            _, (s_model, a_model) = self.queue.get()
+            s_next_model, r_model = self.simulate_model(s_model, a_model)
+            self.Q[s_model, a_model] += self.learning_rate * (r_model + self.gamma * np.max(self.Q[s_next_model])
+                                                              - self.Q[s_model, a_model])
+            for s_prev, a_prev in zip(*np.where(self.n[:, :, s_model] > 0)):  # not sure if this is right
+                r_prev = self.r_function(s_prev, a_prev, s_model)
+                p = self.priority(s_prev, a_prev, r_prev, s_model)
+                if p > self.priority_cutoff:
+                    self.queue.put((-p, (s_prev, a_prev)))
 
 
 def test():
@@ -99,13 +108,13 @@ def test():
     gamma = 0.99
 
     # Algorithm parameters
-    policy = 'dyna'  # 'ps'
+    policy = 'ps'  # 'dyna'
     epsilon = 0.1
     learning_rate = 0.5
     n_planning_updates = 5
 
     # Plotting parameters
-    plot = False
+    plot = True
     plot_optimal_policy = True
     step_pause = 0.0001
 
@@ -116,7 +125,7 @@ def test():
                        n_planning_updates)  # Initialize Dyna policy
     elif policy == 'ps':
         pi = PrioritizedSweepingAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon,
-                                      n_planning_updates)  # Init PS policy
+                                      n_planning_updates, max_queue_size=0)  # Init PS policy
     else:
         raise KeyError('Policy {} not implemented'.format(policy))
 
@@ -126,6 +135,7 @@ def test():
 
     for t in range(n_time_steps):
         # Select action, transition, update policy
+        print(t)
         a = pi.select_action(s)
         s_next, r, done = env.step(a)
         pi.update(s=s, a=a, r=r, done=done, s_next=s_next)
