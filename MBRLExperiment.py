@@ -7,11 +7,10 @@ Bachelor AI, Leiden University, The Netherlands
 2021
 By Thomas Moerland
 """
-from pickle import FALSE
 import numpy as np
-from MBRLEnvironment import WindyGridworld
+from Helper import LearningCurvePlot, smooth, ComparisonPlot
 from MBRLAgents import DynaAgent, PrioritizedSweepingAgent
-from Helper import LearningCurvePlot, smooth
+from MBRLEnvironment import WindyGridworld
 
 
 def run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window, learning_rate, gamma,
@@ -26,28 +25,28 @@ def run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window, learni
         env = WindyGridworld()
         if policy == 'Dyna':
             pi = DynaAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon,
-                        n_planning_updates)  # Initialize Dyna policy
+                           n_planning_updates)  # Initialize Dyna policy
         elif policy == 'Prioritized Sweeping':
             pi = PrioritizedSweepingAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon,
-                                        n_planning_updates, max_queue_size=0)  # Init PS policy
+                                          n_planning_updates, max_queue_size=0)  # Init PS policy
         else:
             raise KeyError('Policy {} not implemented'.format(policy))
-       
+
         s = env.reset()
-        
+
         for t in range(n_timesteps):
             # Select action, transition, update policy      
             a = pi.select_action(s)
             s_next, r, done = env.step(a)
-            learning_curve[rep,t] = r
+            learning_curve[rep, t] = r
             pi.update(s=s, a=a, r=r, done=done, s_next=s_next)
             if done:
                 s = env.reset()
             else:
                 s = s_next
-                
-    learning_curve = np.mean(learning_curve, axis = 0)
-        
+
+    learning_curve = np.mean(learning_curve, axis=0)
+
     # Apply additional smoothing
     learning_curve = smooth(learning_curve, smoothing_window)  # additional smoothing
     return learning_curve
@@ -61,12 +60,9 @@ def experiment():
     epsilon_experiment = True
     n_planning_updates_experiment = True
     learning_rate_experiment = True
-    
-    
-    for policy in ['Prioritized Sweeping']:#['Dyna', 'Prioritized Sweeping']:
 
+    for policy in ['Dyna', 'Prioritized Sweeping']:
         ##### Assignment a: effect of epsilon ######
-        
         if epsilon_experiment:
             print(policy + ' effect of epsilon')
             learning_rate = 0.5
@@ -76,10 +72,11 @@ def experiment():
 
             for epsilon in epsilons:
                 learning_curve = run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window,
-                                                learning_rate, gamma, epsilon, n_planning_updates)
+                                                 learning_rate, gamma, epsilon, n_planning_updates)
+                np.savetxt(f"{policy}_{epsilon}_egreedy.csv", learning_curve, delimiter=",")
                 Plot.add_curve(learning_curve, label='$\epsilon$ = {}'.format(epsilon))
             Plot.save('{}_egreedy.png'.format(policy))
-        
+
         ##### Assignment b: effect of n_planning_updates ######
         if n_planning_updates_experiment:
             print(policy + ' effect of n_planning_updates')
@@ -90,11 +87,12 @@ def experiment():
 
             for n_planning_updates in n_planning_updatess:
                 learning_curve = run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window,
-                                                learning_rate, gamma, epsilon, n_planning_updates)
+                                                 learning_rate, gamma, epsilon, n_planning_updates)
+                np.savetxt(f"{policy}_{n_planning_updates}_n_planning_updates.csv", learning_curve, delimiter=",")
                 Plot.add_curve(learning_curve, label='Number of planning updates = {}'.format(n_planning_updates))
             Plot.save('{}_n_planning_updates.png'.format(policy))
 
-        ##### Assignment 1c: effect of learning_rate ######
+        ##### Assignment c: effect of learning_rate ######
         if learning_rate_experiment:
             print(policy + ' effect of learning_rate')
             epsilon = 0.05
@@ -104,7 +102,8 @@ def experiment():
 
             for learning_rate in learning_rates:
                 learning_curve = run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window,
-                                                learning_rate, gamma, epsilon, n_planning_updates)
+                                                 learning_rate, gamma, epsilon, n_planning_updates)
+                np.savetxt(f"{policy}_{learning_rate}_learning_rate.csv", learning_curve, delimiter=",")
                 Plot.add_curve(learning_curve, label='Learning rate = {}'.format(learning_rate))
             Plot.save('{}_learning_rate.png'.format(policy))
 
