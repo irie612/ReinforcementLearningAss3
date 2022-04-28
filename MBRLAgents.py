@@ -29,6 +29,8 @@ class Agent:
         p = np.random.uniform()
         if p <= 1 - self.epsilon:
             choices = np.argwhere(self.Q[s] == np.max(self.Q[s])).flatten()
+            if choices.size==0:
+                print(self.Q[s])
             a = np.random.choice(choices)
         else:
             choices = np.argwhere(self.Q[s] != np.max(self.Q[s])).flatten()
@@ -57,6 +59,7 @@ class DynaAgent(Agent):
         # TO DO: Add own code
         super().update(s, a, r, s_next, done)
         self.Q[s, a] += self.learning_rate * (r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
+        
         n_s = np.sum(self.n, axis=(1, 2))
         n_s_a = np.sum(self.n, axis=2)
         prev_sel_s = np.argwhere(n_s > 0).flatten()
@@ -103,8 +106,8 @@ def test():
     gamma = 0.99
 
     # Algorithm parameters
-    policy = 'dyna'  # 'dyna'
-    epsilon = 0.1
+    policy = 'ps'  # 'dyna'
+    epsilon = 0.01
     learning_rate = 0.5
     n_planning_updates = 5
 
@@ -126,7 +129,7 @@ def test():
 
     # Prepare for running
     s = env.reset()
-    continuous_mode = False
+    continuous_mode = True
 
     for t in range(n_time_steps):
         # Select action, transition, update policy
