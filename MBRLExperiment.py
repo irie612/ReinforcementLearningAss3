@@ -60,7 +60,7 @@ def experiment():
     gamma = 0.99
     epsilon_experiment = True
     n_planning_updates_experiment = True
-    learning_rate_experiment = False
+    learning_rate_experiment = True
     
     
     for policy in ['Prioritized Sweeping']:#['Dyna', 'Prioritized Sweeping']:
@@ -83,7 +83,7 @@ def experiment():
         ##### Assignment b: effect of n_planning_updates ######
         if n_planning_updates_experiment:
             print(policy + ' effect of n_planning_updates')
-            epsilon = 0.1
+            epsilon = 0.05
             n_planning_updatess = [1, 5, 15]
             learning_rate = 0.5
             Plot = LearningCurvePlot(title='{}: effect of number of planning updates per iteration'.format(policy))
@@ -97,7 +97,7 @@ def experiment():
         ##### Assignment 1c: effect of learning_rate ######
         if learning_rate_experiment:
             print(policy + ' effect of learning_rate')
-            epsilon = 0.1
+            epsilon = 0.05
             n_planning_updates = 5
             learning_rates = [0.1, 0.5, 1.0]
             Plot = LearningCurvePlot(title='{}: effect of learning rate'.format(policy))
