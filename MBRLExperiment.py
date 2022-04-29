@@ -108,17 +108,23 @@ def experiment():
             Plot.save('{}_learning_rate.png'.format(policy))
 
 
-def comparison():
+def comparison(dyna_egreedy, dyna_learning_rate, dyna_n_plans, ps_egreedy, ps_learning_rate, ps_n_plans):
     n_timesteps = 10000
     n_repetitions = 10
     smoothing_window = 101
     gamma = 0.99
-    epsilon_dyna = 0.01
-    epsilon_ps = 0.01
-    learning_rate_dyna = 1.0
-    learning_rate_ps = 0.5
-    n_planning_updates_dyna = 15
-    n_planning_updates_ps = 15
+
+    epsilons = [0.01, 0.05, 0.1, 0.25]
+    epsilon_dyna = epsilons[np.argmax(np.mean(dyna_egreedy, axis=1))]
+    epsilon_ps = epsilons[np.argmax(np.mean(ps_egreedy, axis=1))]
+
+    learning_rates = [0.1, 0.5, 1.0]
+    learning_rate_dyna = learning_rates[np.argmax(np.mean(dyna_learning_rate, axis=1))]
+    learning_rate_ps = learning_rates[np.argmax(np.mean(ps_learning_rate, axis=1))]
+
+    n_planning_updates = [1, 5, 15]
+    n_planning_updates_dyna = n_planning_updates[np.argmax(np.mean(dyna_n_plans, axis=1))]
+    n_planning_updates_ps = n_planning_updates[np.argmax(np.mean(ps_n_plans, axis=1))]
 
     dyna_learning_curve = run_repetitions("Dyna", n_repetitions, n_timesteps, smoothing_window, learning_rate_dyna, gamma, epsilon_dyna, n_planning_updates_dyna)
     ps_learning_curve = run_repetitions("Prioritized Sweeping", n_repetitions, n_timesteps, smoothing_window, learning_rate_ps, gamma, epsilon_ps, n_planning_updates_ps)
@@ -130,4 +136,3 @@ def comparison():
 
 if __name__ == '__main__':
     experiment()
-    comparison()
