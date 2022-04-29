@@ -57,9 +57,10 @@ def experiment():
     n_repetitions = 10
     smoothing_window = 101
     gamma = 0.99
-    epsilon_experiment = True
-    n_planning_updates_experiment = True
-    learning_rate_experiment = True
+    epsilon_experiment = False
+    n_planning_updates_experiment = False
+    learning_rate_experiment = False
+    ql_vs_dyna = True
 
     for policy in ['Dyna', 'Prioritized Sweeping']:
         ##### Assignment a: effect of epsilon ######
@@ -107,6 +108,20 @@ def experiment():
                 Plot.add_curve(learning_curve, label='Learning rate = {}'.format(learning_rate))
             Plot.save('{}_learning_rate.png'.format(policy))
 
+    if ql_vs_dyna:
+        learning_rate = 0.5
+        n_planning_updatess = [0, 15]
+        epsilon = 0.05
+        Plot = LearningCurvePlot(title='Dyna vs Q-Learning performance'.format(policy))
+        for n_planning_updates in n_planning_updatess:
+                learning_curve = run_repetitions('Dyna', n_repetitions, n_timesteps, smoothing_window,
+                                                 learning_rate, gamma, epsilon, n_planning_updates)
+                if n_planning_updates == 0:
+                    Plot.add_curve(learning_curve, label='Q-Learning'.format(n_planning_updates))
+                if n_planning_updates == 15:
+                    Plot.add_curve(learning_curve, label='Dyna'.format(n_planning_updates))
+        Plot.save('ql_vs_dyna.png')
+        
 
 def comparison(dyna_egreedy, dyna_learning_rate, dyna_n_plans, ps_egreedy, ps_learning_rate, ps_n_plans):
     n_timesteps = 10000
