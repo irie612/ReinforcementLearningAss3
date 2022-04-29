@@ -57,20 +57,21 @@ class DynaAgent(Agent):
 
     def update(self, s, a, r, s_next, done):
         # TO DO: Add own code
-        super().update(s, a, r, s_next, done)
+        if self.n_planning_updates>0:
+            super().update(s, a, r, s_next, done)
         self.Q[s, a] += self.learning_rate * (r + self.gamma * np.max(self.Q[s_next]) - self.Q[s, a])
-        
-        n_s = np.sum(self.n, axis=(1, 2))
-        n_s_a = np.sum(self.n, axis=2)
-        prev_sel_s = np.argwhere(n_s > 0).flatten()
-        if prev_sel_s.size > 0:
-            for k in range(self.n_planning_updates):
-                random_s = np.random.choice(prev_sel_s)
-                possible_actions = np.argwhere(n_s_a[random_s] > 0).flatten()
-                random_a = np.random.choice(possible_actions)
-                s_next_model, r_model = self.simulate_model(random_s, random_a)
-                self.Q[random_s, random_a] += self.learning_rate * (r_model + self.gamma * np.max(self.Q[s_next_model])
-                                                                    - self.Q[random_s, random_a])
+        if self.n_planning_updates>0:
+            n_s = np.sum(self.n, axis=(1, 2))
+            n_s_a = np.sum(self.n, axis=2)
+            prev_sel_s = np.argwhere(n_s > 0).flatten()
+            if prev_sel_s.size > 0:
+                for k in range(self.n_planning_updates):
+                    random_s = np.random.choice(prev_sel_s)
+                    possible_actions = np.argwhere(n_s_a[random_s] > 0).flatten()
+                    random_a = np.random.choice(possible_actions)
+                    s_next_model, r_model = self.simulate_model(random_s, random_a)
+                    self.Q[random_s, random_a] += self.learning_rate * (r_model + self.gamma * np.max(self.Q[s_next_model])
+                                                                        - self.Q[random_s, random_a])
 
 
 class PrioritizedSweepingAgent(Agent):

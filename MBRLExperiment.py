@@ -11,17 +11,26 @@ import numpy as np
 from Helper import LearningCurvePlot, smooth, ComparisonPlot
 from MBRLAgents import DynaAgent, PrioritizedSweepingAgent
 from MBRLEnvironment import WindyGridworld
-
+import time 
 
 def run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window, learning_rate, gamma,
-                    epsilon, n_planning_updates):
+                    epsilon, n_planning_updates, print_time=False):
     # Write all your experiment code here
     # Look closely at the code in test() of MBRLAgents.py for an example of the execution loop
     # Log the obtained rewards during a single training run of n_timesteps, and repeat this process n_repetitions times
     # Average the learning curves over repetitions, and then additionally smooth the curve
     # Be sure to turn environment rendering off! It heavily slows down your runtime
     learning_curve = np.zeros(shape=(n_repetitions, n_timesteps))
+    
+    avg_time = 0
+    
+      
+        
     for rep in range(n_repetitions):
+        
+        if print_time:
+            initial_time = time.process_time()  
+        
         env = WindyGridworld()
         if policy == 'Dyna':
             pi = DynaAgent(env.n_states, env.n_actions, learning_rate, gamma, epsilon,
@@ -44,7 +53,11 @@ def run_repetitions(policy, n_repetitions, n_timesteps, smoothing_window, learni
                 s = env.reset()
             else:
                 s = s_next
-
+        avg_time += time.process_time() - initial_time
+    
+    print(policy,": ",learning_rate, epsilon, n_planning_updates,"  time")
+    print(avg_time/n_repetitions)
+        
     learning_curve = np.mean(learning_curve, axis=0)
 
     # Apply additional smoothing
@@ -115,8 +128,9 @@ def experiment():
         Plot = LearningCurvePlot(title='Dyna vs Q-Learning performance'.format(policy))
         for n_planning_updates in n_planning_updatess:
                 learning_curve = run_repetitions('Dyna', n_repetitions, n_timesteps, smoothing_window,
-                                                 learning_rate, gamma, epsilon, n_planning_updates)
+                                                 learning_rate, gamma, epsilon, n_planning_updates, True)
                 if n_planning_updates == 0:
+                    
                     Plot.add_curve(learning_curve, label='Q-Learning'.format(n_planning_updates))
                 if n_planning_updates == 15:
                     Plot.add_curve(learning_curve, label='Dyna'.format(n_planning_updates))
