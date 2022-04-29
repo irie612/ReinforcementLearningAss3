@@ -57,9 +57,9 @@ def experiment():
     n_repetitions = 10
     smoothing_window = 101
     gamma = 0.99
-    epsilon_experiment = False
-    n_planning_updates_experiment = False
-    learning_rate_experiment = False
+    epsilon_experiment = True
+    n_planning_updates_experiment = True
+    learning_rate_experiment = True
     ql_vs_dyna = True
 
     for policy in ['Dyna', 'Prioritized Sweeping']:
@@ -121,7 +121,7 @@ def experiment():
                 if n_planning_updates == 15:
                     Plot.add_curve(learning_curve, label='Dyna'.format(n_planning_updates))
         Plot.save('ql_vs_dyna.png')
-        
+
 
 def comparison(dyna_egreedy, dyna_learning_rate, dyna_n_plans, ps_egreedy, ps_learning_rate, ps_n_plans):
     n_timesteps = 10000
